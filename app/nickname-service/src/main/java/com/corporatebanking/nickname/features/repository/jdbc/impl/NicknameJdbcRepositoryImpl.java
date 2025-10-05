@@ -1,3 +1,4 @@
+package com.corporatebanking.nickname.features.repository.jdbc.impl;
 import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.Statement;
@@ -35,9 +36,14 @@ public class NicknameJdbcRepositoryImpl implements NicknameJdbcRepository {
             rs.getObject("updated_by", Long.class)
     );
 
-    @Override
+	@Override
     public NicknameData save(NicknameData nickname) {
-        String sql = "INSERT INTO nicknames (\"from_account\"_id, \"to_account\"_id, nickname, created_at, created_by) VALUES (?, ?, ?, ?, ?)";
+        String sql = """
+                INSERT INTO nicknames 
+                (from_account_id, to_account_id, nickname, created_at, created_by)
+                VALUES (?, ?, ?, ?, ?)
+                RETURNING id;
+            """;
         KeyHolder keyHolder = new GeneratedKeyHolder();
 
         jdbcTemplate.update(connection -> {
@@ -54,17 +60,20 @@ public class NicknameJdbcRepositoryImpl implements NicknameJdbcRepository {
             return ps;
         }, keyHolder);
 
-        Number generatedId = keyHolder.getKey();
-        if (generatedId != null) {
-            return findById(generatedId.longValue()).orElse(null);
-        }
-        return null;
+        long generatedId = (long) keyHolder.getKeys().get("id");
+        return findById(generatedId).orElse(null);
     }
 
     @Override
     public Optional<NicknameData> findById(Long id) {
-    	String sql = "SELECT * FROM nicknames n WHERE n.\"to_account\"_id = ?";
+        String sql = "SELECT * FROM nicknames WHERE id = ?";
         return jdbcTemplate.query(sql, nicknameRowMapper, id).stream().findFirst();
+    }
+    
+    @Override
+    public Optional<NicknameData> findByToAccountId(Long toAccountId) {
+        String sql = "SELECT * FROM nicknames WHERE to_account_id = ?";
+        return jdbcTemplate.query(sql, nicknameRowMapper, toAccountId).stream().findFirst();
     }
 
     @Override
@@ -75,7 +84,7 @@ public class NicknameJdbcRepositoryImpl implements NicknameJdbcRepository {
 
     @Override
     public Optional<NicknameData> update(NicknameData nickname) {
-        String sql = "UPDATE nicknames SET \"from_account\"_id = ?, \"to_account\"_id = ?, nickname = ?, updated_at = ?, updated_by = ? WHERE id = ?";
+        String sql = "UPDATE nicknames SET from_account_id = ?, to_account_id = ?, nickname = ?, updated_at = ?, updated_by = ? WHERE id = ?";
         int updatedRows = jdbcTemplate.update(sql,
                 nickname.fromAccount(),
                 nickname.toAccount(),
@@ -92,7 +101,7 @@ public class NicknameJdbcRepositoryImpl implements NicknameJdbcRepository {
 
     @Override
     public void deleteById(Long id) {
-    	String sql = "SELECT * FROM nicknames n WHERE n.\"to_account\"_id = ?";
+    	String sql = "DELETE FROM nicknames WHERE id = ?";
         jdbcTemplate.update(sql, id);
     }
 }

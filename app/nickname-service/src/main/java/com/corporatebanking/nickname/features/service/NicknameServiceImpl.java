@@ -77,7 +77,7 @@ public class NicknameServiceImpl extends NicknameServiceGrpc.NicknameServiceImpl
 
     @Override
     public void updateNickname(UpdateNicknameRequest request, StreamObserver<NicknameResponse> responseObserver) {
-        Optional<NicknameData> existingOrgOpt = nicknameRepository.findById(request.getToAccount());
+        Optional<NicknameData> existingOrgOpt = nicknameRepository.findByToAccountId(request.getToAccount());
         if (existingOrgOpt.isPresent()) {
              NicknameData orgToUpdate = new NicknameData(
             	existingOrgOpt.get().id(),

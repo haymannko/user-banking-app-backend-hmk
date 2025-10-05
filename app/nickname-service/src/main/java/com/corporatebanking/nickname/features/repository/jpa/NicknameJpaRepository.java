@@ -1,5 +1,5 @@
 package com.corporatebanking.nickname.features.repository.jpa;
 
-public interface OrganizationJpaRepository {
+public interface NicknameJpaRepository {
     
 }
