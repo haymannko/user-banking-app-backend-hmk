@@ -35,8 +35,8 @@ jobs:
       # 🧩 Build other Maven modules (nickname, gateway, etc.)
       - name: Build all services
         run: |
-          mvn -f ./nickname-service/pom.xml clean package -DskipTests
-          mvn -f ./gateway-service/pom.xml clean package -DskipTests
+          mvn -f ./app/nickname-service/pom.xml clean package -DskipTests
+          mvn -f ./app/gateway-service/pom.xml clean package -DskipTests
 
       # 🐳 Optional: Build and run docker-compose (integration check)
       - name: Build Docker images
