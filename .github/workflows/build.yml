@@ -1,7 +1,7 @@
 
 
 
-name: Build and Test (Docker Compose)
+name: Build and Test Microservices
 
 on:
   push:
@@ -13,62 +13,36 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
-    services:
-      postgres:
-        image: postgres:14-alpine
-        env:
-          POSTGRES_DB: micro-banking-db
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd="pg_isready -U postgres"
-          --health-interval=10s
-          --health-timeout=5s
-          --health-retries=5
-
     steps:
+      # 🧾 Checkout code
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v3
 
+      # ☕ Set up JDK 17
       - name: Set up JDK 17
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v3
         with:
-          distribution: 'temurin'
           java-version: '17'
-          cache: 'maven'
+          distribution: 'temurin'
+          cache: maven
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Build all Maven modules
+      # 🧱 Build and install protos module
+      - name: Build protos
+        working-directory: ./protos
         run: |
-          cd app
-          for dir in gateway-service nickname-service infra/protos; do
-            if [ -f "$dir/pom.xml" ]; then
-              echo "Building $dir..."
-              (cd $dir && mvn -B clean package)
-            fi
-          done
+          mvn clean install -DskipTests
 
-          # - name: Build and run Docker Compose
-          #   run: |
-          #     cd app/infra
-          #     docker-compose build
-          #     docker-compose up -d
-          #     docker ps -a
+      # 🧩 Build other Maven modules (nickname, gateway, etc.)
+      - name: Build all services
+        run: |
+          mvn -f ./nickname-service/pom.xml clean package -DskipTests
+          mvn -f ./gateway-service/pom.xml clean package -DskipTests
 
-          # - name: Wait for services
-          #   run: sleep 15
+      # 🐳 Optional: Build and run docker-compose (integration check)
+      - name: Build Docker images
+        run: |
+          docker compose -f docker-compose.yml build
 
-          # - name: Test services health
-          #   run: |
-          #     curl -v http://localhost:8080 || true
-          #     curl -v http://localhost:3001 || true
-
-          # - name: Tear down containers
-          #   if: always()
-          #   run: |
-          #     cd app/infra
-          #     docker-compose down -v
+      # ✅ Optional: Run unit tests if you want
+      - name: Run tests
+        run: mvn test
