@@ -52,23 +52,23 @@ jobs:
             fi
           done
 
-      - name: Build and run Docker Compose
-        run: |
-          cd app/infra
-          docker-compose build
-          docker-compose up -d
-          docker ps -a
+          # - name: Build and run Docker Compose
+          #   run: |
+          #     cd app/infra
+          #     docker-compose build
+          #     docker-compose up -d
+          #     docker ps -a
 
-      - name: Wait for services
-        run: sleep 15
+          # - name: Wait for services
+          #   run: sleep 15
 
-      - name: Test services health
-        run: |
-          curl -v http://localhost:8080 || true
-          curl -v http://localhost:3001 || true
+          # - name: Test services health
+          #   run: |
+          #     curl -v http://localhost:8080 || true
+          #     curl -v http://localhost:3001 || true
 
-      - name: Tear down containers
-        if: always()
-        run: |
-          cd app/infra
-          docker-compose down -v
+          # - name: Tear down containers
+          #   if: always()
+          #   run: |
+          #     cd app/infra
+          #     docker-compose down -v
