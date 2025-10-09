@@ -47,7 +47,7 @@ jobs:
       # 🐳 Build Docker images (correct working directory)
       - name: Build Docker images
         working-directory: ./app/infra
-        run: docker compose -f docker-compose.yml build
+        run: docker compose -f docker-compose.yaml build
 
       # ✅ Run unit tests (optional)
       - name: Run tests
