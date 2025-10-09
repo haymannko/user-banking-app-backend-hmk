@@ -49,6 +49,11 @@ jobs:
         working-directory: ./app/infra
         run: docker compose -f docker-compose.yaml build
 
-      # ✅ Run unit tests (optional)
-      - name: Run tests
-        run: mvn test
+      # 🧩 Build & test each microservice
+      - name: Build & test nickname-service
+        working-directory: app/nickname-service
+        run: mvn clean test
+      
+      - name: Build & test gateway-service
+        working-directory: app/gateway-service
+        run: mvn clean test
