@@ -1,6 +1,5 @@
 
 
-
 name: Build and Test Microservices
 
 on:
@@ -14,9 +13,11 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 🧾 Checkout code
+      # 🧩 Checkout code
       - name: Checkout repository
         uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
 
       # ☕ Set up JDK 17
       - name: Set up JDK 17
@@ -26,23 +27,28 @@ jobs:
           distribution: 'temurin'
           cache: maven
 
-      # 🧱 Build and install protos module
+      # 🧱 Debug: list structure (helps confirm paths)
+      - name: Debug repository structure
+        run: |
+          pwd
+          ls -R app
+
+      # 🧩 Build and install protos module
       - name: Build protos
         working-directory: ./app/infra/protos
-        run: |
-          mvn clean install -DskipTests
+        run: mvn clean install -DskipTests
 
-      # 🧩 Build other Maven modules (nickname, gateway, etc.)
+      # 🔧 Build other Maven modules (nickname, gateway, etc.)
       - name: Build all services
         run: |
           mvn -f ./app/nickname-service/pom.xml clean package -DskipTests
           mvn -f ./app/gateway-service/pom.xml clean package -DskipTests
 
-      # 🐳 Optional: Build and run docker-compose (integration check)
+      # 🐳 Build Docker images (correct working directory)
       - name: Build Docker images
-        run: |
-          docker compose -f ./app/infra/docker-compose.yml build
+        working-directory: ./app/infra
+        run: docker compose -f docker-compose.yml build
 
-      # ✅ Optional: Run unit tests if you want
+      # ✅ Run unit tests (optional)
       - name: Run tests
         run: mvn test
