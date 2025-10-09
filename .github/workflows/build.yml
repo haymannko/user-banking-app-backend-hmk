@@ -41,7 +41,7 @@ jobs:
       # 🐳 Optional: Build and run docker-compose (integration check)
       - name: Build Docker images
         run: |
-          docker compose -f docker-compose.yml build
+          docker compose -f app/infra/docker-compose.yml build
 
       # ✅ Optional: Run unit tests if you want
       - name: Run tests
