@@ -5,7 +5,7 @@ name: Build and Test Microservices
 
 on:
   push:
-    branches: [ "dev", "main", "feat/*" ]
+    branches: [ "dev", "feat/*" ]
   pull_request:
     branches: [ "dev" ]
 
@@ -28,7 +28,7 @@ jobs:
 
       # 🧱 Build and install protos module
       - name: Build protos
-        working-directory: ./protos
+        working-directory: ./app/infra/protos
         run: |
           mvn clean install -DskipTests
 
