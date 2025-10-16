@@ -1,0 +1,101 @@
+
+
+name: Docker Build & Deploy
+
+on:
+  push:
+    branches:
+      - dev  
+      - app/***
+    paths:
+      - '**/Dockerfile'
+      - '.github/workflows/docker-ci.yml'
+      - 'docker-compose.yml'
+  pull_request:
+    branches:
+      - main  
+      - dev 
+      - app/***
+
+jobs:
+  build-and-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 🧾 Checkout Code
+        uses: actions/checkout@v4
+
+      - name: 🔍 Detect Changed Dockerfiles
+        id: detect
+        run: |
+          echo "Detecting changed Dockerfiles..."
+          CHANGED=$(git diff --name-only HEAD~1 HEAD | grep Dockerfile || true)
+          echo "Changed Dockerfiles: $CHANGED"
+          echo "changed_dockerfiles=$CHANGED" >> $GITHUB_OUTPUT
+
+      - name: 🐳 Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: 🏗️ Build Docker Images
+        if: steps.detect.outputs.changed_dockerfiles != ''
+        run: |
+          for file in $(echo "${{ steps.detect.outputs.changed_dockerfiles }}"); do
+            SERVICE=$(dirname "$file")
+            IMAGE_NAME=${SERVICE//\//-}
+            echo "Building image for $SERVICE as $IMAGE_NAME"
+            docker build -t $IMAGE_NAME:latest $SERVICE
+          done
+
+      - name: 🛡️ Install Trivy
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'image'
+          ignore-unfixed: true
+
+      - name: 🔍 Scan Images with Trivy
+        if: steps.detect.outputs.changed_dockerfiles != ''
+        run: |
+          for file in $(echo "${{ steps.detect.outputs.changed_dockerfiles }}"); do
+            SERVICE=$(dirname "$file")
+            IMAGE_NAME=${SERVICE//\//-}
+            echo "Scanning $IMAGE_NAME..."
+            trivy image --severity HIGH,CRITICAL $IMAGE_NAME:latest || true
+          done
+
+      - name: 📦 Save and Upload Docker Artifacts
+        if: steps.detect.outputs.changed_dockerfiles != ''
+        run: |
+          mkdir artifacts
+          for file in $(echo "${{ steps.detect.outputs.changed_dockerfiles }}"); do
+            SERVICE=$(dirname "$file")
+            IMAGE_NAME=${SERVICE//\//-}
+            docker save -o artifacts/${IMAGE_NAME}.tar $IMAGE_NAME:latest
+          done
+        uses: actions/upload-artifact@v4
+        with:
+          name: docker-images
+          path: artifacts/
+
+  deploy:
+    needs: build-and-scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: 🧾 Checkout Repo
+        uses: actions/checkout@v4
+
+      - name: 📥 Download Built Images
+        uses: actions/download-artifact@v4
+        with:
+          name: docker-images
+          path: ./artifacts
+
+      - name: 🐳 Load Images
+        run: |
+          for tar in ./artifacts/*.tar; do
+            echo "Loading $tar"
+            docker load -i $tar
+          done
+
+      - name: 🧱 Deploy via Docker Compose
+        run: |
+          docker compose down
+          docker compose up -d
