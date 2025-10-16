@@ -1,0 +1,13 @@
+server:
+  port: 3502
+
+spring:
+  datasource:
+    url: ${PERSONAL_DB_URL}
+    username: ${PERSONAL_DB_USERNAME}
+    password: ${PERSONAL_DB_PASSWORD}
+    driverClassName: org.postgresql.Driver
+
+grpc:
+  server:
+    port: 7095

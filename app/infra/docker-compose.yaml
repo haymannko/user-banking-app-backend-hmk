@@ -68,6 +68,20 @@ services:
       - DB_USERNAME=${PERSONAL_DB_USERNAME}
       - DB_PASSWORD=${PERSONAL_DB_PASSWORD}
 
+  personal-transaction-service:
+    build: ../personal-transaction-service
+    depends_on:
+      - personal-user-db
+    networks:
+      - banknet
+    ports:
+      - "3502:3502"
+      - "7095:7095"
+    environment:
+      - DB_URL=${PERSONAL_DB_URL}
+      - DB_USERNAME=${PERSONAL_DB_USERNAME}
+      - DB_PASSWORD=${PERSONAL_DB_PASSWORD}
+
 networks:
   banknet:
     driver: bridge
