@@ -67,16 +67,46 @@ jobs:
       - name: 🔍 Scan Images with Trivy
         if: steps.detect.outputs.changed_dockerfiles != ''
         run: |
+          echo "🔍 Starting Trivy image scan..."
+
+          # Scan dynamically detected Docker images
           for file in $(echo "${{ steps.detect.outputs.changed_dockerfiles }}"); do
-            SERVICE=$(dirname "$file")
-            IMAGE_NAME=${SERVICE//\//-}
-            echo "Scanning $IMAGE_NAME..."
-            trivy image --exit-code 0 --severity HIGH,CRITICAL $IMAGE_NAME:latest || true
+            SERVICE_DIR=$(dirname "$file")
+
+            # Skip if service directory is '.'
+            if [ "$SERVICE_DIR" = "." ]; then
+              echo "⚠️  Skipping root-level Dockerfile (no service folder)"
+              continue
+            fi
+
+            IMAGE_NAME="app-${SERVICE_DIR//\//-}:latest"
+            echo "🔹 Scanning detected image: $IMAGE_NAME"
+
+            # Check if image exists before scanning
+            if docker image inspect $IMAGE_NAME > /dev/null 2>&1; then
+              trivy image --exit-code 0 --severity HIGH,CRITICAL $IMAGE_NAME || true
+            else
+              echo "⚠️  Image $IMAGE_NAME not found — skipping"
+            fi
           done
-          trivy image app-personal-user-service:latest
-          trivy image app-personal-transaction-service:latest
-          trivy image app-nickname-service:latest
-          trivy image app-gateway-service:latest
+
+          # Explicit scans for known service images (static list)
+          echo "🔍 Scanning known service images..."
+          for STATIC_IMAGE in \
+            app-personal-user-service:latest \
+            app-personal-transaction-service:latest \
+            app-nickname-service:latest \
+            app-gateway-service:latest; do
+      
+            echo "🔹 Scanning static image: $STATIC_IMAGE"
+
+            if docker image inspect $STATIC_IMAGE > /dev/null 2>&1; then
+              trivy image --exit-code 0 --severity HIGH,CRITICAL $STATIC_IMAGE || true
+            else
+              echo "⚠️  Static image $STATIC_IMAGE not found — skipping"
+            fi
+          done
+
 
       - name: 📦 Upload Docker Artifacts
         if: always()  # <-- ensures this runs even if Trivy fails
@@ -107,6 +137,5 @@ jobs:
 
       - name: 🧱 Deploy via Docker Compose
         run: |
-          docker compose down
-          docker compose up -d
+          docker compose -f ./docker-compose.yml up -d
 
