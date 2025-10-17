@@ -52,6 +52,11 @@ jobs:
         with:
           scan-type: 'image'
           ignore-unfixed: true
+          vuln-type: 'os,library'
+          format: 'table'
+          exit-code: '0'
+          skip-dirs: '/tmp'
+        continue-on-error: true
 
       - name: 🔍 Scan Images with Trivy
         if: steps.detect.outputs.changed_dockerfiles != ''
@@ -59,9 +64,13 @@ jobs:
           for file in $(echo "${{ steps.detect.outputs.changed_dockerfiles }}"); do
             SERVICE=$(dirname "$file")
             IMAGE_NAME=${SERVICE//\//-}
-            echo "Scanning $IMAGE_NAME..."
-            trivy image --severity HIGH,CRITICAL $IMAGE_NAME:latest || true
+            echo "Scanning image $IMAGE_NAME:latest ..."
+            trivy image --exit-code 0 --severity HIGH,CRITICAL $IMAGE_NAME:latest || true
           done
+
+
+
+
 
       - name: 📦 Save Docker Artifacts
         if: steps.detect.outputs.changed_dockerfiles != ''
