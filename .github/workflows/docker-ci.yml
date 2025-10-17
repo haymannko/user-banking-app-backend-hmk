@@ -70,10 +70,11 @@ jobs:
             IMAGE_NAME=${SERVICE//\//-}
             docker save -o artifacts/${IMAGE_NAME}.tar $IMAGE_NAME:latest
           done
-        uses: actions/upload-artifact@v4
-        with:
-          name: docker-images
-          path: artifacts/
+     - name: Upload Docker images as artifacts
+       uses: actions/upload-artifact@v4
+       with:
+         name: docker-images
+         path: artifacts/
 
   deploy:
     needs: build-and-scan
