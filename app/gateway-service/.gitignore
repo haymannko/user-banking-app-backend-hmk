@@ -1,5 +1,6 @@
-target/classes
-target/gateway-service-0.0.1-SNAPSHOT.jar.original
-target/generated-sources
-target/maven-archiver
-target/maven-status
+#target/classes
+#target/gateway-service-0.0.1-SNAPSHOT.jar.original
+#target/generated-sources
+#target/maven-archiver
+#target/maven-status
+target
