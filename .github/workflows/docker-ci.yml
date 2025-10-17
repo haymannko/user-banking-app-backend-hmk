@@ -39,16 +39,22 @@ jobs:
         uses: docker/setup-buildx-action@v3
 
       - name: 🏗️ Build Docker Images
-        if: steps.detect.outputs.changed_dockerfiles != ''
         run: |
           mkdir -p artifacts
-          for file in $(echo "${{ steps.detect.outputs.changed_dockerfiles }}"); do
-            SERVICE=$(dirname "$file")
-            IMAGE_NAME=${SERVICE//\//-}
-            echo "Building image for $SERVICE as $IMAGE_NAME"
-            docker build -t $IMAGE_NAME:latest $SERVICE
-            docker save -o artifacts/${IMAGE_NAME}.tar $IMAGE_NAME:latest
-          done
+          FILES=$(find . -type f -name "Dockerfile")
+          if [ -z "$FILES" ]; then
+            echo "⚠️ No Dockerfiles found — skipping build."
+            exit 0
+          fi
+
+        for file in $FILES; do
+          SERVICE=$(dirname "$file")
+          IMAGE_NAME=${SERVICE//\//-}
+          echo "🛠️ Building image for $SERVICE as $IMAGE_NAME"
+          docker build -t $IMAGE_NAME:latest $SERVICE
+          docker save -o artifacts/${IMAGE_NAME}.tar $IMAGE_NAME:latest
+        done
+
 
       - name: 🛡️ Install Trivy
         uses: aquasecurity/trivy-action@master
