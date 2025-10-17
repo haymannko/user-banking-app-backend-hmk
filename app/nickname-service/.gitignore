@@ -1,2 +1,6 @@
-target
+target/classes
+target/nickname-service-0.0.1-SNAPSHOT.jar.original
+target/generated-sources
+target/maven-archiver
+target/maven-status
 .env
