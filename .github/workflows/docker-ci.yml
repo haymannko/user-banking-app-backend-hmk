@@ -73,6 +73,10 @@ jobs:
             echo "Scanning $IMAGE_NAME..."
             trivy image --exit-code 0 --severity HIGH,CRITICAL $IMAGE_NAME:latest || true
           done
+          trivy image app-personal-user-service:latest
+          trivy image app-personal-transaction-service:latest
+          trivy image app-nickname-service:latest
+          trivy image app-gateway-service:latest
 
       - name: 📦 Upload Docker Artifacts
         if: always()  # <-- ensures this runs even if Trivy fails
