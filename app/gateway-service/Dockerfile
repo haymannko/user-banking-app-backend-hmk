@@ -4,6 +4,6 @@ COPY pom.xml .
 COPY src ./src
 
 FROM eclipse-temurin:17-jre
-COPY ./target/gateway-service-0.0.1-SNAPSHOT.jar app.jar
+COPY ./target/gateway-service-0.0.1-SNAPSHOT.jar gateway-app.jar
 EXPOSE 8080
 ENTRYPOINT ["java","-jar","app.jar"]
