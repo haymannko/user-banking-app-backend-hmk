@@ -135,7 +135,14 @@ jobs:
             docker load -i $tar
           done
 
-      - name: Deploy via Docker Compose
-        run: docker compose -f app/infra/docker-compose.yml up -d
+      - name: 🧭 Debug current path and files
+        run: |
+          pwd
+          ls -R ./app/infra
+
+      - name: 🚀 Deploy via Docker Compose
+        working-directory: ./app/infra
+        run: docker compose up -d
+
 
 
