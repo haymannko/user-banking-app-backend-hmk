@@ -1,5 +1,6 @@
 
 
+
 name: Docker Build & Deploy
 
 on:
@@ -20,6 +21,7 @@ on:
 jobs:
   build-and-scan:
     runs-on: ubuntu-latest
+
     steps:
       - name: 🧾 Checkout Code
         uses: actions/checkout@v4
@@ -61,7 +63,7 @@ jobs:
             trivy image --severity HIGH,CRITICAL $IMAGE_NAME:latest || true
           done
 
-      - name: 📦 Save and Upload Docker Artifacts
+      - name: 📦 Save Docker Artifacts
         if: steps.detect.outputs.changed_dockerfiles != ''
         run: |
           mkdir artifacts
@@ -70,15 +72,18 @@ jobs:
             IMAGE_NAME=${SERVICE//\//-}
             docker save -o artifacts/${IMAGE_NAME}.tar $IMAGE_NAME:latest
           done
-     - name: Upload Docker images as artifacts
-       uses: actions/upload-artifact@v4
-       with:
-         name: docker-images
-         path: artifacts/
+
+      - name: 📤 Upload Docker Images as Artifacts
+        if: steps.detect.outputs.changed_dockerfiles != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: docker-images
+          path: artifacts/
 
   deploy:
     needs: build-and-scan
     runs-on: ubuntu-latest
+
     steps:
       - name: 🧾 Checkout Repo
         uses: actions/checkout@v4
@@ -89,14 +94,15 @@ jobs:
           name: docker-images
           path: ./artifacts
 
-      - name: 🐳 Load Images
+      - name: 🐳 Load Docker Images
         run: |
           for tar in ./artifacts/*.tar; do
             echo "Loading $tar"
             docker load -i $tar
           done
 
-      - name: 🧱 Deploy via Docker Compose
+      - name: 🚀 Deploy via Docker Compose
         run: |
           docker compose down
           docker compose up -d
+
