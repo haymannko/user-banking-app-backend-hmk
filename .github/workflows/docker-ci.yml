@@ -136,6 +136,6 @@ jobs:
           done
 
       - name: Deploy via Docker Compose
-        run: docker compose -f ./app/infra/docker-compose.yml up -d
+        run: docker compose -f app/infra/docker-compose.yml up -d
 
 
