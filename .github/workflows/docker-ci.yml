@@ -6,21 +6,22 @@ name: Docker Build & Deploy
 on:
   push:
     branches:
-      - dev  
-      - app/*
+      - dev
+      - main
     paths:
       - '**/Dockerfile'
       - '.github/workflows/docker-ci.yml'
       - 'docker-compose.yml'
   pull_request:
     branches:
-      - main  
-      - dev 
-      - app/*
+      - main
+      - dev
 
 jobs:
   build-and-scan:
     runs-on: ubuntu-latest
+    outputs:
+      changed_dockerfiles: ${{ steps.detect.outputs.changed_dockerfiles }}
 
     steps:
       - name: 🧾 Checkout Code
@@ -40,11 +41,13 @@ jobs:
       - name: 🏗️ Build Docker Images
         if: steps.detect.outputs.changed_dockerfiles != ''
         run: |
+          mkdir -p artifacts
           for file in $(echo "${{ steps.detect.outputs.changed_dockerfiles }}"); do
             SERVICE=$(dirname "$file")
             IMAGE_NAME=${SERVICE//\//-}
             echo "Building image for $SERVICE as $IMAGE_NAME"
             docker build -t $IMAGE_NAME:latest $SERVICE
+            docker save -o artifacts/${IMAGE_NAME}.tar $IMAGE_NAME:latest
           done
 
       - name: 🛡️ Install Trivy
@@ -52,10 +55,6 @@ jobs:
         with:
           scan-type: 'image'
           ignore-unfixed: true
-          vuln-type: 'os,library'
-          format: 'table'
-          exit-code: '0'
-          skip-dirs: '/tmp'
         continue-on-error: true
 
       - name: 🔍 Scan Images with Trivy
@@ -64,26 +63,12 @@ jobs:
           for file in $(echo "${{ steps.detect.outputs.changed_dockerfiles }}"); do
             SERVICE=$(dirname "$file")
             IMAGE_NAME=${SERVICE//\//-}
-            echo "Scanning image $IMAGE_NAME:latest ..."
+            echo "Scanning $IMAGE_NAME..."
             trivy image --exit-code 0 --severity HIGH,CRITICAL $IMAGE_NAME:latest || true
           done
 
-
-
-
-
-      - name: 📦 Save Docker Artifacts
-        if: steps.detect.outputs.changed_dockerfiles != ''
-        run: |
-          mkdir artifacts
-          for file in $(echo "${{ steps.detect.outputs.changed_dockerfiles }}"); do
-            SERVICE=$(dirname "$file")
-            IMAGE_NAME=${SERVICE//\//-}
-            docker save -o artifacts/${IMAGE_NAME}.tar $IMAGE_NAME:latest
-          done
-
-      - name: 📤 Upload Docker Images as Artifacts
-        if: steps.detect.outputs.changed_dockerfiles != ''
+      - name: 📦 Upload Docker Artifacts
+        if: always()  # <-- ensures this runs even if Trivy fails
         uses: actions/upload-artifact@v4
         with:
           name: docker-images
@@ -92,7 +77,6 @@ jobs:
   deploy:
     needs: build-and-scan
     runs-on: ubuntu-latest
-
     steps:
       - name: 🧾 Checkout Repo
         uses: actions/checkout@v4
@@ -103,14 +87,14 @@ jobs:
           name: docker-images
           path: ./artifacts
 
-      - name: 🐳 Load Docker Images
+      - name: 🐳 Load Images
         run: |
           for tar in ./artifacts/*.tar; do
             echo "Loading $tar"
             docker load -i $tar
           done
 
-      - name: 🚀 Deploy via Docker Compose
+      - name: 🧱 Deploy via Docker Compose
         run: |
           docker compose down
           docker compose up -d
